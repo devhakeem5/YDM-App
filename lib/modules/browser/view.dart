@@ -36,9 +36,9 @@ class BrowserView extends GetView<BrowserController> {
         ],
       ),
       floatingActionButton: Obx(
-        () => controller.isYouTubePage.value
+        () => (controller.isYouTubePage.value || controller.isFacebookPage.value)
             ? FloatingActionButton.extended(
-                onPressed: controller.onYouTubeDownload,
+                onPressed: controller.onVideoDownload,
                 icon: const Icon(Icons.download),
                 label: Text(AppStrings.downloadVideo.tr),
               )

@@ -7,9 +7,11 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:ydm/core/utils/logger.dart';
 import 'package:ydm/core/values/app_strings.dart';
 import 'package:ydm/data/models/download_status.dart';
+import 'package:ydm/data/models/video_quality_entity.dart';
 import 'package:ydm/data/services/download_manager.dart';
+import 'package:ydm/data/services/facebook_service.dart';
 import 'package:ydm/data/services/youtube_service.dart';
-import 'package:ydm/modules/browser/widgets/quality_selection_dialog.dart';
+import 'package:ydm/modules/browser/widgets/unified_quality_dialog.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 class HistoryItem {
@@ -43,11 +45,13 @@ class BrowserController extends GetxController {
   final RxList<HistoryItem> history = <HistoryItem>[].obs;
   final RxString historyFilter = ''.obs;
 
-  // YouTube
+  // YouTube & Facebook
   final RxBool isYouTubePage = false.obs;
+  final RxBool isFacebookPage = false.obs;
 
   late DownloadManager _downloadManager;
   late YouTubeService _youTubeService;
+  late FacebookService _facebookService;
 
   static const List<String> _downloadExtensions = [
     '.zip',
@@ -100,8 +104,8 @@ class BrowserController extends GetxController {
   void onInit() {
     super.onInit();
     _downloadManager = Get.find<DownloadManager>();
-    // Lazy put YouTubeService if not in binding, or use Get.put if we want to ensure instance
     _youTubeService = Get.put(YouTubeService());
+    _facebookService = Get.put(FacebookService()); // Put FacebookService
     _loadHistory();
     _initWebView();
     historySearchController.addListener(() {
@@ -170,6 +174,90 @@ class BrowserController extends GetxController {
 
   void _checkYouTube(String url) {
     isYouTubePage.value = _youTubeService.isYouTubeUrl(url);
+    if (!isYouTubePage.value) {
+      _checkFacebook(url);
+    } else {
+      isFacebookPage.value = false;
+    }
+  }
+
+  void _checkFacebook(String url) {
+    // Basic check, service has robust check
+    isFacebookPage.value = url.contains('facebook.com') || url.contains('fb.watch');
+  }
+
+  // Unified Download Action
+  void onVideoDownload() {
+    final url = currentUrl.value;
+
+    Get.dialog(
+      UnifiedQualityDialog(
+        title: 'Select Quality',
+        fetchQualities: () async {
+          if (isYouTubePage.value) {
+            return await _fetchYouTubeQualities(url);
+          } else if (isFacebookPage.value) {
+            final video = await _facebookService.getVideoInfo(url);
+            return video?.qualities;
+          }
+          return null;
+        },
+        onConfirm: (selection) {
+          _startNewDownload(selection.url, _generateFilenameFromSelection(selection));
+        },
+      ),
+    );
+  }
+
+  Future<List<VideoQualityEntity>> _fetchYouTubeQualities(String url) async {
+    final info = await _youTubeService.getVideoInfo(url);
+    if (info == null) return [];
+
+    final entities = <VideoQualityEntity>[];
+
+    // Add best audio
+    final audio = _youTubeService.getBestAudioStream(info.manifest);
+    if (audio != null) {
+      entities.add(
+        VideoQualityEntity(
+          label: 'Audio Only',
+          url: audio.url.toString(),
+          format: 'mp3',
+          isAudio: true,
+          fileSize: audio.size.toString(),
+        ),
+      );
+    }
+
+    // Add Muxed videos
+    for (var stream in info.streams) {
+      String? label;
+      if (stream is MuxedStreamInfo) {
+        label = stream.videoQuality.toString();
+      } else if (stream is VideoOnlyStreamInfo) {
+        // Should not happen with current service logic but safe to keep
+        label = stream.videoQuality.toString();
+      }
+
+      entities.add(
+        VideoQualityEntity(
+          label: label??'',
+          url: stream.url.toString(),
+          format: stream.container.name,
+          fileSize: stream.size.toString(),
+        ),
+      );
+    }
+
+    // Pass title via some mechanism?
+    // The dialog fetches list. Title is passed in constructor 'title'.
+    // Actually fetches list. The dialog title is static or we need to return metadata too.
+    // UnifiedDialog takes 'title' string in constructor.
+    // We might want to update dialog title after fetch?
+    // Current UnifiedDialog implementation doesn't support changing title from fetch result.
+    // For now, we use generic title.
+
+    return entities;
   }
 
   NavigationDecision _onNavigationRequest(NavigationRequest request) {
@@ -272,56 +360,12 @@ class BrowserController extends GetxController {
     );
   }
 
-  // YouTube Button Action
-  Future<void> onYouTubeDownload() async {
-    // 1. Get info
-    final url = currentUrl.value;
-    final info = await _youTubeService.getVideoInfo(url);
-
-    if (info == null) {
-      Get.snackbar('Error', 'Could not fetch YouTube info');
-      return;
-    }
-
-    // 2. Show Dialog
-    Get.dialog(
-      QualitySelectionDialog(
-        video: info.video,
-        streams: info.streams,
-        onConfirm: (streamInfo, isAudio) async {
-          // 3. Handle selection
-          if (isAudio) {
-            final audioStream = _youTubeService.getBestAudioStream(info.manifest);
-            if (audioStream != null) {
-              final streamUrl = audioStream.url.toString();
-              final filename = '${info.video.title} [Audio].mp3'.replaceAll(
-                RegExp(r'[\\/:*?"<>|]'),
-                '_',
-              );
-              _startNewDownload(streamUrl, filename);
-            } else {
-              Get.snackbar('Error', 'No audio stream found');
-            }
-          } else {
-            // Video Mode
-            final streamUrl = streamInfo.url.toString();
-            final ext = streamInfo.container.name;
-
-            // Use VideoStreamInfo as common base for video properties
-            String qualityLabel = 'Video';
-            if (streamInfo is VideoStreamInfo) {
-              qualityLabel = streamInfo.videoQuality.toString();
-            }
-
-            final filename = '${info.video.title} [$qualityLabel].$ext'.replaceAll(
-              RegExp(r'[\\/:*?"<>|]'),
-              '_',
-            );
-            _startNewDownload(streamUrl, filename);
-          }
-        },
-      ),
-    );
+  String _generateFilenameFromSelection(VideoQualityEntity selection) {
+    // We need title. Since fetch is async inside dialog, we don't have title here easily unless we refactor.
+    // For now use timestamp or generic.
+    // To improve: Fetch info BEFORE dialog? Or have fetch return a composite object.
+    // Let's use simple name for now.
+    return 'video_${DateTime.now().millisecondsSinceEpoch}.${selection.format}';
   }
 
   // ... handleInput, goToUrl, goBack, goForward, reload ...
