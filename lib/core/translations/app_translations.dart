@@ -70,6 +70,13 @@ class AppTranslations extends Translations {
       AppStrings.filesMissing: 'files missing',
       AppStrings.missingFilesAction: 'Do you want to continue?',
       AppStrings.continueText: 'Continue',
+      AppStrings.downloadVideo: 'Download Video',
+      AppStrings.selectQuality: 'Select Quality',
+      AppStrings.videoQuality: 'Video',
+      AppStrings.audioQuality: 'Audio',
+      AppStrings.audioOnly: 'Audio Only (MP3)',
+      AppStrings.unknownSize: 'Unknown size',
+      AppStrings.extractingAudio: 'Extracting audio...',
     },
     'ar_SA': {
       AppStrings.appName: 'YDM',
@@ -137,6 +144,13 @@ class AppTranslations extends Translations {
       AppStrings.filesMissing: 'ملفات مفقودة',
       AppStrings.missingFilesAction: 'هل تريد المتابعة؟',
       AppStrings.continueText: 'متابعة',
+      AppStrings.downloadVideo: 'تنزيل الفيديو',
+      AppStrings.selectQuality: 'اختر الجودة',
+      AppStrings.videoQuality: 'فيديو',
+      AppStrings.audioQuality: 'صوت',
+      AppStrings.audioOnly: 'صوت فقط (MP3)',
+      AppStrings.unknownSize: 'حجم غير معروف',
+      AppStrings.extractingAudio: 'جارٍ استخراج الصوت...',
     },
   };
 }

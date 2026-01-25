@@ -73,4 +73,13 @@ class AppStrings {
   static const String filesMissing = 'files_missing';
   static const String missingFilesAction = 'missing_files_action';
   static const String continueText = 'continue';
+
+  // YouTube
+  static const String downloadVideo = 'download_video';
+  static const String selectQuality = 'select_quality';
+  static const String videoQuality = 'video_quality';
+  static const String audioQuality = 'audio_quality';
+  static const String audioOnly = 'audio_only';
+  static const String unknownSize = 'unknown_size';
+  static const String extractingAudio = 'extracting_audio';
 }

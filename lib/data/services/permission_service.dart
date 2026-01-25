@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:ydm/core/utils/logger.dart';
@@ -27,6 +28,26 @@ class PermissionService extends GetxService {
         LogService.info("Manage External Storage Permission already granted.");
         return true;
       }
+
+      // Show explanation dialog
+      await Get.dialog(
+        AlertDialog(
+          title: const Text('Permission Required'),
+          content: const Text(
+            'YDM needs access to manage all files to save downloads to external storage. '
+            'Please grant "All files access" in the next screen.',
+          ),
+          actions: [
+            TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                Get.back();
+              },
+              child: const Text('Grant'),
+            ),
+          ],
+        ),
+      );
 
       LogService.info("Requesting Manage External Storage Permission...");
       status = await Permission.manageExternalStorage.request();

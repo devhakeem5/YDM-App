@@ -35,6 +35,15 @@ class BrowserView extends GetView<BrowserController> {
           Expanded(child: WebViewWidget(controller: controller.webViewController)),
         ],
       ),
+      floatingActionButton: Obx(
+        () => controller.isYouTubePage.value
+            ? FloatingActionButton.extended(
+                onPressed: controller.onYouTubeDownload,
+                icon: const Icon(Icons.download),
+                label: Text(AppStrings.downloadVideo.tr),
+              )
+            : const SizedBox.shrink(),
+      ),
       bottomNavigationBar: _buildNavigationBar(context),
     );
   }

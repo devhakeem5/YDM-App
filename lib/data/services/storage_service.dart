@@ -11,6 +11,16 @@ class StorageService extends GetxService {
   Directory? _downloadDirectory;
 
   Directory? get downloadDirectory => _downloadDirectory;
+  Directory? get _videosDir =>
+      _downloadDirectory != null ? Directory('${_downloadDirectory!.path}/YDM-Videos') : null;
+  Directory? get _audiosDir =>
+      _downloadDirectory != null ? Directory('${_downloadDirectory!.path}/YDM-Audios') : null;
+  Directory? get _docsDir =>
+      _downloadDirectory != null ? Directory('${_downloadDirectory!.path}/YDM-Documents') : null;
+  Directory? get _appsDir =>
+      _downloadDirectory != null ? Directory('${_downloadDirectory!.path}/YDM-Apps') : null;
+  Directory? get _othersDir =>
+      _downloadDirectory != null ? Directory('${_downloadDirectory!.path}/YDM-Others') : null;
 
   Future<StorageService> init() async {
     await _initializeDownloadDirectory();
@@ -37,14 +47,26 @@ class StorageService extends GetxService {
 
       _downloadDirectory = Directory('${baseDir.path}/$_ydmFolderName');
 
+      // Create main directory
       if (!await _downloadDirectory!.exists()) {
         await _downloadDirectory!.create(recursive: true);
         LogService.info("Created YDM directory at: ${_downloadDirectory!.path}");
-      } else {
-        LogService.info("YDM directory already exists at: ${_downloadDirectory!.path}");
       }
+
+      // Create subdirectories
+      await _createSubDir(_videosDir);
+      await _createSubDir(_audiosDir);
+      await _createSubDir(_docsDir);
+      await _createSubDir(_appsDir);
+      await _createSubDir(_othersDir);
     } catch (e, stackTrace) {
       LogService.error("Failed to initialize download directory", e, stackTrace);
+    }
+  }
+
+  Future<void> _createSubDir(Directory? dir) async {
+    if (dir != null && !await dir.exists()) {
+      await dir.create(recursive: true);
     }
   }
 
@@ -52,11 +74,33 @@ class StorageService extends GetxService {
     return _downloadDirectory?.path ?? '';
   }
 
+  Directory _getCategoryDir(String filename) {
+    final ext = filename.toLowerCase().split('.').last;
+
+    if (['mp4', 'mkv', 'webm', 'mov', 'avi', 'flv', 'wmv'].contains(ext)) {
+      return _videosDir!;
+    } else if (['mp3', 'm4a', 'wav', 'aac', 'flac', 'ogg'].contains(ext)) {
+      return _audiosDir!;
+    } else if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'].contains(ext)) {
+      return _docsDir!;
+    } else if (['apk', 'xapk', 'apkm'].contains(ext)) {
+      return _appsDir!;
+    } else {
+      return _othersDir!;
+    }
+  }
+
   String getFilePath(String filename) {
-    return '${getDownloadPath()}/$filename';
+    if (_downloadDirectory == null) return '';
+    final dir = _getCategoryDir(filename);
+    return '${dir.path}/$filename';
   }
 
   String getIncompleteFilePath(String filename) {
+    if (_downloadDirectory == null) return '';
+    // Incomplete files stay in categorised folder ? Or main?
+    // Usually cleaner to keep them in separate or same.
+    // Per request: "File type determines folder". So same.
     return '${getFilePath(filename)}$_incompleteExtension';
   }
 

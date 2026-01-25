@@ -8,6 +8,9 @@ import 'package:ydm/core/utils/logger.dart';
 import 'package:ydm/core/values/app_strings.dart';
 import 'package:ydm/data/models/download_status.dart';
 import 'package:ydm/data/services/download_manager.dart';
+import 'package:ydm/data/services/youtube_service.dart';
+import 'package:ydm/modules/browser/widgets/quality_selection_dialog.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 class HistoryItem {
   final String url;
@@ -40,7 +43,11 @@ class BrowserController extends GetxController {
   final RxList<HistoryItem> history = <HistoryItem>[].obs;
   final RxString historyFilter = ''.obs;
 
+  // YouTube
+  final RxBool isYouTubePage = false.obs;
+
   late DownloadManager _downloadManager;
+  late YouTubeService _youTubeService;
 
   static const List<String> _downloadExtensions = [
     '.zip',
@@ -93,6 +100,8 @@ class BrowserController extends GetxController {
   void onInit() {
     super.onInit();
     _downloadManager = Get.find<DownloadManager>();
+    // Lazy put YouTubeService if not in binding, or use Get.put if we want to ensure instance
+    _youTubeService = Get.put(YouTubeService());
     _loadHistory();
     _initWebView();
     historySearchController.addListener(() {
@@ -125,18 +134,9 @@ class BrowserController extends GetxController {
 
   void _addToHistory(String url) {
     if (url.isEmpty || url == 'about:blank') return;
-
-    // Remove duplicates
     history.removeWhere((h) => h.url == url);
-
-    // Add to top
     history.insert(0, HistoryItem(url: url, title: url, visitedAt: DateTime.now()));
-
-    // Keep only last 100 items
-    if (history.length > 100) {
-      history.removeRange(100, history.length);
-    }
-
+    if (history.length > 100) history.removeRange(100, history.length);
     _saveHistory();
   }
 
@@ -150,11 +150,13 @@ class BrowserController extends GetxController {
             isLoading.value = true;
             currentUrl.value = url;
             urlController.text = url;
+            _checkYouTube(url);
           },
           onPageFinished: (url) {
             isLoading.value = false;
             currentUrl.value = url;
             _addToHistory(url);
+            _checkYouTube(url);
           },
           onProgress: (progress) {
             loadingProgress.value = progress / 100;
@@ -164,6 +166,10 @@ class BrowserController extends GetxController {
       ..loadRequest(Uri.parse(currentUrl.value));
 
     urlController.text = currentUrl.value;
+  }
+
+  void _checkYouTube(String url) {
+    isYouTubePage.value = _youTubeService.isYouTubeUrl(url);
   }
 
   NavigationDecision _onNavigationRequest(NavigationRequest request) {
@@ -218,7 +224,6 @@ class BrowserController extends GetxController {
         title: Text(AppStrings.downloadDetected.tr),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(filename, style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -267,11 +272,62 @@ class BrowserController extends GetxController {
     );
   }
 
-  /// Smart input: URL opens directly, text searches on Google
+  // YouTube Button Action
+  Future<void> onYouTubeDownload() async {
+    // 1. Get info
+    final url = currentUrl.value;
+    final info = await _youTubeService.getVideoInfo(url);
+
+    if (info == null) {
+      Get.snackbar('Error', 'Could not fetch YouTube info');
+      return;
+    }
+
+    // 2. Show Dialog
+    Get.dialog(
+      QualitySelectionDialog(
+        video: info.video,
+        streams: info.streams,
+        onConfirm: (streamInfo, isAudio) async {
+          // 3. Handle selection
+          if (isAudio) {
+            final audioStream = _youTubeService.getBestAudioStream(info.manifest);
+            if (audioStream != null) {
+              final streamUrl = audioStream.url.toString();
+              final filename = '${info.video.title} [Audio].mp3'.replaceAll(
+                RegExp(r'[\\/:*?"<>|]'),
+                '_',
+              );
+              _startNewDownload(streamUrl, filename);
+            } else {
+              Get.snackbar('Error', 'No audio stream found');
+            }
+          } else {
+            // Video Mode
+            final streamUrl = streamInfo.url.toString();
+            final ext = streamInfo.container.name;
+
+            // Use VideoStreamInfo as common base for video properties
+            String qualityLabel = 'Video';
+            if (streamInfo is VideoStreamInfo) {
+              qualityLabel = streamInfo.videoQuality.toString();
+            }
+
+            final filename = '${info.video.title} [$qualityLabel].$ext'.replaceAll(
+              RegExp(r'[\\/:*?"<>|]'),
+              '_',
+            );
+            _startNewDownload(streamUrl, filename);
+          }
+        },
+      ),
+    );
+  }
+
+  // ... handleInput, goToUrl, goBack, goForward, reload ...
   void handleInput(String input) {
     final trimmed = input.trim();
     if (trimmed.isEmpty) return;
-
     if (_isUrl(trimmed)) {
       goToUrl(trimmed);
     } else {
@@ -301,7 +357,7 @@ class BrowserController extends GetxController {
 
   void loadFromHistory(HistoryItem item) {
     goToUrl(item.url);
-    Get.back(); // Close drawer
+    Get.back();
   }
 
   void clearHistory() {

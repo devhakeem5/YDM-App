@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
@@ -40,6 +41,7 @@ class BackupService extends GetxService {
     _storageService = Get.find<StorageService>();
   }
 
+  SharePlus sharePlus = SharePlus.instance;
   Future<void> exportData() async {
     try {
       final settings = {
@@ -61,12 +63,14 @@ class BackupService extends GetxService {
 
       final jsonString = json.encode(backup.toJson());
       final fileName = 'ydm_backup_${DateTime.now().millisecondsSinceEpoch}.json';
-      final path = '${_storageService.appDirectory.path}/$fileName';
+      final path = '${_storageService.getDownloadPath()}/$fileName';
 
       final file = File(path);
       await file.writeAsString(jsonString);
 
-      await Share.shareXFiles([XFile(path)], text: 'YDM Backup');
+      ShareParams shared = ShareParams(files: [XFile(path)], text: 'YDM Backup');
+      await sharePlus.share(shared);
+
       LogService.info("Backup exported successfully.");
     } catch (e, stack) {
       LogService.error("Export failed", e, stack);
@@ -135,12 +139,14 @@ class BackupService extends GetxService {
       final s = analysis.backupData.settings;
       if (s.containsKey('maxRetries')) _settingsService.setMaxRetries(s['maxRetries']);
       if (s.containsKey('retryDelay')) _settingsService.setRetryDelay(s['retryDelay']);
-      if (s.containsKey('maxConcurrentDownloads'))
+      if (s.containsKey('maxConcurrentDownloads')) {
         _settingsService.setMaxConcurrentDownloads(s['maxConcurrentDownloads']);
+      }
       if (s.containsKey('wifiOnly')) _settingsService.setWifiOnly(s['wifiOnly']);
       if (s.containsKey('autoResume')) _settingsService.setAutoResume(s['autoResume']);
-      if (s.containsKey('themeMode'))
+      if (s.containsKey('themeMode')) {
         _settingsService.setThemeMode(ThemeMode.values[s['themeMode']]);
+      }
       if (s.containsKey('locale')) _settingsService.setLocale(s['locale']);
 
       // Restore Downloads
