@@ -77,6 +77,15 @@ class AppTranslations extends Translations {
       AppStrings.audioOnly: 'Audio Only (MP3)',
       AppStrings.unknownSize: 'Unknown size',
       AppStrings.extractingAudio: 'Extracting audio...',
+      AppStrings.notifications: 'Notifications',
+      AppStrings.permissionsRequired: 'Permissions Required',
+      AppStrings.storageAccess: 'Storage Access',
+      AppStrings.storageDesc:
+          'Needed to save downloaded videos and files to your device. On Android 11+, this requires "All Files Access".',
+      AppStrings.batteryOptimization: 'Battery Optimization',
+      AppStrings.batteryDesc:
+          'To ensure downloads continue in the background without being killed by the system.',
+      AppStrings.grant: 'Grant',
     },
     'ar_SA': {
       AppStrings.appName: 'YDM',
@@ -151,6 +160,15 @@ class AppTranslations extends Translations {
       AppStrings.audioOnly: 'صوت فقط (MP3)',
       AppStrings.unknownSize: 'حجم غير معروف',
       AppStrings.extractingAudio: 'جارٍ استخراج الصوت...',
+      AppStrings.notifications: 'الإشعارات',
+      AppStrings.permissionsRequired: 'الأذونات المطلوبة',
+      AppStrings.storageAccess: 'الوصول لوحدة التخزين',
+      AppStrings.storageDesc:
+          'مطلوب لحفظ مقاطع الفيديو والملفات التي تم تنزيلها على جهازك. في أندرويد 11+، يتطلب هذا "الوصول إلى جميع الملفات".',
+      AppStrings.batteryOptimization: 'تحسين البطارية',
+      AppStrings.batteryDesc:
+          'لضمان استمرار التنزيلات في الخلفية دون أن يقوم النظام بإيقاف التطبيق.',
+      AppStrings.grant: 'منح',
     },
   };
 }

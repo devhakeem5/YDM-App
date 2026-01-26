@@ -4,4 +4,5 @@ abstract class AppRoutes {
   static const downloads = '/downloads';
   static const settings = '/settings';
   static const splash = '/splash';
+  static const permissions = '/permissions';
 }

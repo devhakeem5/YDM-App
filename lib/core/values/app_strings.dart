@@ -82,4 +82,13 @@ class AppStrings {
   static const String audioOnly = 'audio_only';
   static const String unknownSize = 'unknown_size';
   static const String extractingAudio = 'extracting_audio';
+  static const String notifications = 'notifications';
+
+  // Permissions
+  static const String permissionsRequired = 'permissions_required';
+  static const String storageAccess = 'storage_access';
+  static const String storageDesc = 'storage_desc';
+  static const String batteryOptimization = 'battery_optimization';
+  static const String batteryDesc = 'battery_desc';
+  static const String grant = 'grant';
 }

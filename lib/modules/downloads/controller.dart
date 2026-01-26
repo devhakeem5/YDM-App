@@ -4,12 +4,10 @@ import 'package:ydm/core/utils/logger.dart';
 import 'package:ydm/data/models/download_task.dart';
 import 'package:ydm/data/services/download_manager.dart';
 import 'package:ydm/data/services/download_worker.dart';
-import 'package:ydm/data/services/youtube_service.dart';
-import 'package:ydm/modules/browser/widgets/quality_selection_dialog.dart';
+import 'package:ydm/routes/app_routes.dart';
 
 class DownloadsController extends GetxController {
   late DownloadManager _downloadManager;
-  late YouTubeService _youTubeService;
 
   final RxInt currentTabIndex = 0.obs;
 
@@ -19,8 +17,7 @@ class DownloadsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _downloadManager = Get.put(DownloadManager());
-    _youTubeService = Get.put(YouTubeService()); // Ensure it's available
+    _downloadManager = Get.find<DownloadManager>();
     _initShareIntent();
   }
 
@@ -58,42 +55,10 @@ class DownloadsController extends GetxController {
 
   void _handleSharedText(String text) async {
     LogService.info("Received shared text: $text");
-    if (_youTubeService.isYouTubeUrl(text)) {
-      final info = await _youTubeService.getVideoInfo(text);
-      if (info != null) {
-        Get.dialog(
-          QualitySelectionDialog(
-            video: info.video,
-            streams: info.streams,
-            onConfirm: (streamInfo, isAudio) {
-              if (isAudio) {
-                final audioStream = _youTubeService.getBestAudioStream(info.manifest);
-                if (audioStream != null) {
-                  final streamUrl = audioStream.url.toString();
-                  final filename = '${info.video.title} [Audio].mp3'.replaceAll(
-                    RegExp(r'[\\/:*?"<>|]'),
-                    '_',
-                  );
-                  _startNewDownload(streamUrl, filename);
-                }
-              } else {
-                final streamUrl = streamInfo.url.toString();
-                // Simpler label for shared
-                final filename = '${info.video.title}.mp4'.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-                _startNewDownload(streamUrl, filename);
-              }
-            },
-          ),
-        );
-      }
-    } else {
-      _startNewDownload(text, 'Shared_Download_${DateTime.now().millisecondsSinceEpoch}');
-    }
-  }
+    if (text.isEmpty) return;
 
-  void _startNewDownload(String url, String filename) {
-    _downloadManager.addDownload(url, filename);
-    Get.snackbar("Download Started", filename, snackPosition: SnackPosition.BOTTOM);
+    // Redirect to browser with the shared URL
+    Get.toNamed(AppRoutes.browser, parameters: {'url': text});
   }
 
   void changeTab(int index) {

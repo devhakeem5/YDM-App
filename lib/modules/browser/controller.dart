@@ -104,9 +104,16 @@ class BrowserController extends GetxController {
   void onInit() {
     super.onInit();
     _downloadManager = Get.find<DownloadManager>();
-    _youTubeService = Get.put(YouTubeService());
-    _facebookService = Get.put(FacebookService()); // Put FacebookService
+    _youTubeService = Get.find<YouTubeService>();
+    _facebookService = Get.find<FacebookService>();
     _loadHistory();
+
+    // Check for shared URL
+    final sharedUrl = Get.parameters['url'];
+    if (sharedUrl != null && sharedUrl.isNotEmpty) {
+      currentUrl.value = sharedUrl;
+    }
+
     _initWebView();
     historySearchController.addListener(() {
       historyFilter.value = historySearchController.text;
@@ -182,7 +189,6 @@ class BrowserController extends GetxController {
   }
 
   void _checkFacebook(String url) {
-    // Basic check, service has robust check
     isFacebookPage.value = url.contains('facebook.com') || url.contains('fb.watch');
   }
 
@@ -209,10 +215,13 @@ class BrowserController extends GetxController {
     );
   }
 
+  String? _currentYouTubeTitle;
+
   Future<List<VideoQualityEntity>> _fetchYouTubeQualities(String url) async {
     final info = await _youTubeService.getVideoInfo(url);
     if (info == null) return [];
 
+    _currentYouTubeTitle = info.video.title;
     final entities = <VideoQualityEntity>[];
 
     // Add best audio
@@ -220,7 +229,7 @@ class BrowserController extends GetxController {
     if (audio != null) {
       entities.add(
         VideoQualityEntity(
-          label: 'Audio Only',
+          label: 'Audio Only (${audio.bitrate.kiloBitsPerSecond.toInt()}kbps)',
           url: audio.url.toString(),
           format: 'mp3',
           isAudio: true,
@@ -229,19 +238,29 @@ class BrowserController extends GetxController {
       );
     }
 
-    // Add Muxed videos
+    final seenQualities = <String>{};
+
     for (var stream in info.streams) {
-      String? label;
-      if (stream is MuxedStreamInfo) {
-        label = stream.videoQuality.toString();
-      } else if (stream is VideoOnlyStreamInfo) {
-        // Should not happen with current service logic but safe to keep
+      String label = "";
+      bool isMuxed = stream is MuxedStreamInfo;
+
+      if (stream is VideoStreamInfo) {
         label = stream.videoQuality.toString();
       }
 
+      if (label.isEmpty) continue;
+
+      if (!isMuxed) {
+        label += " (Video Only)";
+      }
+
+      final uniqueKey = "$label-${stream.container.name}";
+      if (seenQualities.contains(uniqueKey)) continue;
+      seenQualities.add(uniqueKey);
+
       entities.add(
         VideoQualityEntity(
-          label: label??'',
+          label: label,
           url: stream.url.toString(),
           format: stream.container.name,
           fileSize: stream.size.toString(),
@@ -249,15 +268,21 @@ class BrowserController extends GetxController {
       );
     }
 
-    // Pass title via some mechanism?
-    // The dialog fetches list. Title is passed in constructor 'title'.
-    // Actually fetches list. The dialog title is static or we need to return metadata too.
-    // UnifiedDialog takes 'title' string in constructor.
-    // We might want to update dialog title after fetch?
-    // Current UnifiedDialog implementation doesn't support changing title from fetch result.
-    // For now, we use generic title.
+    // Sort: Higher quality first (simplified sort)
+    entities.sort((a, b) {
+      if (a.isAudio && !b.isAudio) return 1;
+      if (!a.isAudio && b.isAudio) return -1;
+      return b.label.compareTo(a.label);
+    });
 
     return entities;
+  }
+
+  String _generateFilenameFromSelection(VideoQualityEntity selection) {
+    final title = _currentYouTubeTitle ?? 'video_${DateTime.now().millisecondsSinceEpoch}';
+    final quality = selection.label.replaceAll(RegExp(r'[^a-zA-Z0-9 ]'), '');
+    final sanitizedTitle = title.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+    return '$sanitizedTitle ($quality).${selection.format}';
   }
 
   NavigationDecision _onNavigationRequest(NavigationRequest request) {
@@ -360,15 +385,6 @@ class BrowserController extends GetxController {
     );
   }
 
-  String _generateFilenameFromSelection(VideoQualityEntity selection) {
-    // We need title. Since fetch is async inside dialog, we don't have title here easily unless we refactor.
-    // For now use timestamp or generic.
-    // To improve: Fetch info BEFORE dialog? Or have fetch return a composite object.
-    // Let's use simple name for now.
-    return 'video_${DateTime.now().millisecondsSinceEpoch}.${selection.format}';
-  }
-
-  // ... handleInput, goToUrl, goBack, goForward, reload ...
   void handleInput(String input) {
     final trimmed = input.trim();
     if (trimmed.isEmpty) return;

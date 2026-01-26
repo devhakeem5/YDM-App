@@ -4,11 +4,13 @@ import 'package:ydm/core/theme/app_theme.dart';
 import 'package:ydm/core/translations/app_translations.dart';
 import 'package:ydm/core/utils/logger.dart';
 import 'package:ydm/data/services/download_manager.dart';
+import 'package:ydm/data/services/facebook_service.dart';
 import 'package:ydm/data/services/network_service.dart';
 import 'package:ydm/data/services/notification_service.dart';
 import 'package:ydm/data/services/permission_service.dart';
 import 'package:ydm/data/services/settings_service.dart';
 import 'package:ydm/data/services/storage_service.dart';
+import 'package:ydm/data/services/youtube_service.dart';
 import 'package:ydm/routes/app_pages.dart';
 
 void main() async {
@@ -23,6 +25,8 @@ void main() async {
   await Get.putAsync<NotificationService>(() async => await NotificationService().init());
   await Get.putAsync<SettingsService>(() async => await SettingsService().init());
   Get.put<DownloadManager>(DownloadManager());
+  Get.put<YouTubeService>(YouTubeService());
+  Get.put<FacebookService>(FacebookService());
 
   LogService.info("Services Initialized.");
 

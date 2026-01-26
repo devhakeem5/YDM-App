@@ -26,30 +26,19 @@ class YouTubeService extends GetxService {
   Future<VideoInfo?> getVideoInfo(String url) async {
     try {
       var video = await _yt.videos.get(url);
-      var manifest = await _yt.videos.streamsClient.getManifest(video.id);
 
-      // Collect video streams (muxed or video-only that we can merge?
-      // Requirement says: "Video qualities 240p...".
-      // Muxed streams usually go up to 720p.
-      // Adaptive streams go higher (1080p, 4k) but are video-only requiring merging with audio.
-      // Current requirement: "Use current download core".
-      // Our core downloads a single URL. Combining video+audio needs ffmpeg or logic.
-      // Restriction: "No complex background downloads outside current core".
-      // Implication: We might be limited to Muxed streams (up to 720p) OR
-      // we implement a simple merge if we can download both?
-      // "Download core" downloads a file.
-      // To support 1080p, we'd need to download two files and merge them (requiring ffmpeg_kit or similar).
-      // Constraint: "No export/import... No complex features".
-      // Let's stick to Muxed streams for simplicity first (up to 720p).
-      // If higher quality is needed (adaptive), we would list them but can we download them?
-      // For this plan, let's expose Muxed streams + Audio-only.
+      // Use alternative clients (TV and Android) which often bypass bot detection
+      var manifest = await _yt.videos.streamsClient.getManifest(
+        video.id,
+        ytClients: [YoutubeApiClient.tv, YoutubeApiClient.android, YoutubeApiClient.mweb],
+      );
 
       var streams = <StreamInfo>[];
       streams.addAll(manifest.muxed);
-      // streams.addAll(manifest.audioOnly); // We handle audio separately in dialog logic
-
-      // If we want 1080p, we need to handle adaptive.
-      // For now, let's return Muxed for video options.
+      // Also add video-only streams for higher resolutions
+      // Note: These won't have audio unless merged.
+      // User said they want more qualities. I'll include them and label them correctly.
+      streams.addAll(manifest.videoOnly);
 
       return VideoInfo(video, streams, manifest);
     } catch (e) {
