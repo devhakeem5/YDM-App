@@ -1,6 +1,6 @@
-# YDM - YouTube & Social Media Downloader
+# YDM - Universal File & Video Downloader
 
-A powerful and modern mobile application built with Flutter for downloading videos and audio from various social media platforms, including YouTube and Facebook.
+A powerful and modern mobile application built with Flutter, designed to download files from the internet and extract videos from various social media platforms in all available formats and qualities.
 
 ---
 
@@ -13,7 +13,7 @@ A powerful and modern mobile application built with Flutter for downloading vide
 # English Version
 
 ## 🚀 Overview
-**YDM** is a feature-rich media downloader that provides a seamless experience for finding and saving content from the web. It features a built-in browser, multi-threaded downloading, and support for various formats and qualities.
+**YDM** is a comprehensive file downloader and media extractor. It provides a seamless experience for finding, saving, and managing files from the web, with specialized support for downloading videos from social media platforms in any possible format.
 
 ## ✨ Key Features
 - **YouTube Integration**: Complete support for YouTube video and audio extraction.
@@ -64,7 +64,7 @@ lib/
 # النسخة العربية
 
 ## 🚀 نظرة عامة
-**YDM** هو تطبيق متطور لتنزيل الوسائط، يوفر تجربة سلسة للعثور على المحتوى وحفظه من الويب. يتميز بمتصفح مدمج، وتنزيل متعدد المسارات، ودعم لمختلف الصيغ والجودات.
+**YDM** هو تطبيق متطور لتنزيل الملفات من الإنترنت، يدعم تنزيل الفيديوهات من منصات التواصل الاجتماعي بجميع الصيغ والجودات الممكنة. يوفر تجربة سلسة للعثور على المحتوى وحفظه وإدارته بسهولة.
 
 ## ✨ المميزات الأساسية
 - **تكامل مع يوتيوب**: دعم كامل لاستخراج الفيديو والصوت من يوتيوب.
