@@ -49,21 +49,29 @@ class _UnifiedQualityDialogState extends State<UnifiedQualityDialog> {
         setState(() {
           _isLoading = false;
           _qualities = result;
-          // Default selection: HD or highest video, or whatever
-          // Simple logic: first one
-          _selected = result.first;
+          // Default selection: first video quality, or first available
+          final videoQualities = result.where((q) => !q.isAudio).toList();
+          _selected = videoQualities.isNotEmpty ? videoQualities.first : result.first;
         });
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _error = 'Error loading qualities: $e';
-      });
+      await Future.delayed(const Duration(seconds: 1));
+
+      try {
+        setState(() {
+          _isLoading = false;
+          _error = 'Error loading qualities: $e';
+        });
+      } catch (_) {}
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Separate audio and video qualities
+    final audioQualities = _qualities.where((q) => q.isAudio).toList();
+    final videoQualities = _qualities.where((q) => !q.isAudio).toList();
+
     return AlertDialog(
       title: Text(AppStrings.selectQuality.tr),
       content: SizedBox(
@@ -80,7 +88,16 @@ class _UnifiedQualityDialogState extends State<UnifiedQualityDialog> {
             ),
             const SizedBox(height: 16),
             if (_isLoading)
-              const Center(child: CircularProgressIndicator())
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 8),
+                    Text(AppStrings.analyzing.tr),
+                  ],
+                ),
+              )
             else if (_error != null)
               Center(
                 child: Text(
@@ -90,31 +107,25 @@ class _UnifiedQualityDialogState extends State<UnifiedQualityDialog> {
                 ),
               )
             else
-              // Quality List
               Flexible(
-                child: ListView.builder(
+                child: ListView(
                   shrinkWrap: true,
-                  itemCount: _qualities.length,
-                  itemBuilder: (context, index) {
-                    final item = _qualities[index];
-                    return RadioListTile<VideoQualityEntity>(
-                      value: item,
-                      groupValue: _selected,
-                      onChanged: (val) {
-                        setState(() {
-                          _selected = val;
-                        });
-                      },
-                      title: Text(item.label),
-                      subtitle: Text(
-                        '${item.format.toUpperCase()} ${item.fileSize != null ? "• ${item.fileSize}" : ""}',
-                      ),
-                      secondary: Icon(
-                        item.isAudio ? Icons.audiotrack : Icons.videocam,
-                        color: AppColors.primary,
-                      ),
-                    );
-                  },
+                  children: [
+                    // Audio Section
+                    if (audioQualities.isNotEmpty) ...[
+                      _buildSectionHeader(AppStrings.audioQuality.tr, Icons.audiotrack),
+                      const SizedBox(height: 8),
+                      ...audioQualities.map((item) => _buildQualityTile(item)),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Video Section
+                    if (videoQualities.isNotEmpty) ...[
+                      _buildSectionHeader(AppStrings.videoQuality.tr, Icons.videocam),
+                      const SizedBox(height: 8),
+                      ...videoQualities.map((item) => _buildQualityTile(item)),
+                    ],
+                  ],
                 ),
               ),
           ],
@@ -133,6 +144,38 @@ class _UnifiedQualityDialogState extends State<UnifiedQualityDialog> {
             child: Text(AppStrings.continueText.tr),
           ),
       ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.primary, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+            fontSize: 16,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQualityTile(VideoQualityEntity item) {
+    return RadioListTile<VideoQualityEntity>(
+      value: item,
+      groupValue: _selected,
+      onChanged: (val) {
+        setState(() {
+          _selected = val;
+        });
+      },
+      title: Text(item.getDisplayLabel()),
+      subtitle: item.fileSize != null ? Text(item.fileSize!) : null,
+      secondary: Icon(item.isAudio ? Icons.audiotrack : Icons.videocam, color: AppColors.primary),
     );
   }
 }

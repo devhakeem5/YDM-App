@@ -94,16 +94,29 @@ class DownloadWorker {
       }
 
       // Prepare request options
+      // Prepare request options with User-Agent to avoid 403 errors
       final options = Options(
         responseType: ResponseType.stream,
-        headers: supportsResume && existingBytes > 0 ? {'Range': 'bytes=$existingBytes-'} : null,
+        headers: {
+          'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': 'https://www.youtube.com/',
+          'Connection': 'keep-alive',
+          if (supportsResume && existingBytes > 0) 'Range': 'bytes=$existingBytes-',
+        },
       );
+
+      LogService.info(">>> REQUEST HEADERS: ${options.headers}");
+      LogService.info(">>> REQUEST URL: ${task.url}");
 
       final response = await _dio.get<ResponseBody>(
         task.url,
         options: options,
         cancelToken: _cancelToken,
       );
+
+      LogService.info("<<< RESPONSE STATUS: ${response.statusCode}");
+      LogService.info("<<< RESPONSE HEADERS: ${response.headers}");
 
       if (response.statusCode == 401 || response.statusCode == 403 || response.statusCode == 410) {
         LogService.warning("Link expired or unauthorized: ${task.url}");
@@ -181,6 +194,9 @@ class DownloadWorker {
       );
     } on DioException catch (e) {
       LogService.error("Download error: ${e.type}", e);
+      LogService.error("<<< ERROR RESPONSE STATUS: ${e.response?.statusCode}");
+      LogService.error("<<< ERROR RESPONSE HEADERS: ${e.response?.headers}");
+      LogService.error("<<< ERROR RESPONSE DATA: ${e.response?.data}");
 
       if (e.type == DioExceptionType.cancel) {
         return DownloadResult(

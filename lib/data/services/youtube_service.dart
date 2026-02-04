@@ -28,10 +28,7 @@ class YouTubeService extends GetxService {
       var video = await _yt.videos.get(url);
 
       // Use alternative clients (TV and Android) which often bypass bot detection
-      var manifest = await _yt.videos.streamsClient.getManifest(
-        video.id,
-        ytClients: [YoutubeApiClient.tv, YoutubeApiClient.android, YoutubeApiClient.mweb],
-      );
+      var manifest = await _yt.videos.streamsClient.getManifest(video.id);
 
       var streams = <StreamInfo>[];
       streams.addAll(manifest.muxed);

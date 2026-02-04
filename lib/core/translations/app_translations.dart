@@ -86,6 +86,11 @@ class AppTranslations extends Translations {
       AppStrings.batteryDesc:
           'To ensure downloads continue in the background without being killed by the system.',
       AppStrings.grant: 'Grant',
+      AppStrings.qualityLow: 'Low',
+      AppStrings.qualityGood: 'Good',
+      AppStrings.qualityHigh: 'High',
+      AppStrings.qualityVeryHigh: 'Very High',
+      AppStrings.analyzing: 'Analyzing...',
     },
     'ar_SA': {
       AppStrings.appName: 'YDM',
@@ -169,6 +174,11 @@ class AppTranslations extends Translations {
       AppStrings.batteryDesc:
           'لضمان استمرار التنزيلات في الخلفية دون أن يقوم النظام بإيقاف التطبيق.',
       AppStrings.grant: 'منح',
+      AppStrings.qualityLow: 'منخفضة',
+      AppStrings.qualityGood: 'جيدة',
+      AppStrings.qualityHigh: 'عالية',
+      AppStrings.qualityVeryHigh: 'عالية جداً',
+      AppStrings.analyzing: 'جارٍ التحليل...',
     },
   };
 }

@@ -79,11 +79,15 @@ class FacebookService {
       if (sdUrl != null) sdUrl = _decodeUrl(sdUrl);
 
       if (hdUrl != null) {
-        qualities.add(VideoQualityEntity(label: 'HD', url: hdUrl, format: 'mp4'));
+        qualities.add(
+          VideoQualityEntity(label: 'HD', url: hdUrl, format: 'mp4', source: VideoSource.facebook),
+        );
       }
 
       if (sdUrl != null) {
-        qualities.add(VideoQualityEntity(label: 'SD', url: sdUrl, format: 'mp4'));
+        qualities.add(
+          VideoQualityEntity(label: 'SD', url: sdUrl, format: 'mp4', source: VideoSource.facebook),
+        );
       }
 
       if (qualities.isEmpty) {
@@ -93,7 +97,14 @@ class FacebookService {
         if (ogVideo != null) {
           var secureUrl = ogVideo.attributes['content'];
           if (secureUrl != null) {
-            qualities.add(VideoQualityEntity(label: 'Standard', url: secureUrl, format: 'mp4'));
+            qualities.add(
+              VideoQualityEntity(
+                label: 'Standard',
+                url: secureUrl,
+                format: 'mp4',
+                source: VideoSource.facebook,
+              ),
+            );
           }
         }
       }

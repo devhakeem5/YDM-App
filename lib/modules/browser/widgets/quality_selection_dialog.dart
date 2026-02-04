@@ -77,7 +77,7 @@ class _QualitySelectionDialogState extends State<QualitySelectionDialog> {
                       _isAudioSelected = false;
                     });
                   },
-                  title: Text(stream.videoQuality.qualityString),
+                  title: Text(stream.videoQuality.name),
                   subtitle: Text(
                     '${stream.container.name.toUpperCase()} • ${_formatSize(stream.size)}',
                   ),

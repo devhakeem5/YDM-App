@@ -68,4 +68,15 @@ class PermissionService extends GetxService {
     final status = await Permission.notification.request();
     return status.isGranted;
   }
+
+  Future<bool> isOverlayGranted() async {
+    if (!Platform.isAndroid) return true;
+    return await Permission.systemAlertWindow.isGranted;
+  }
+
+  Future<bool> requestOverlayPermission() async {
+    if (!Platform.isAndroid) return true;
+    final status = await Permission.systemAlertWindow.request();
+    return status.isGranted;
+  }
 }

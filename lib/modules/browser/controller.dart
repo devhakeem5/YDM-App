@@ -227,52 +227,72 @@ class BrowserController extends GetxController {
     // Add best audio
     final audio = _youTubeService.getBestAudioStream(info.manifest);
     if (audio != null) {
+      final size = audio.size;
+      final sizeStr = size.totalMegaBytes >= 1024
+          ? '${size.totalGigaBytes.toStringAsFixed(2)} GB'
+          : '${size.totalMegaBytes.toStringAsFixed(1)} MB';
+
       entities.add(
         VideoQualityEntity(
-          label: 'Audio Only (${audio.bitrate.kiloBitsPerSecond.toInt()}kbps)',
+          label: 'mp3 – 128K',
           url: audio.url.toString(),
-          format: 'mp3',
+          format: audio.container.name, // Use actual container to prevent download failure
           isAudio: true,
-          fileSize: audio.size.toString(),
+          fileSize: sizeStr,
+          source: VideoSource.youtube,
         ),
       );
     }
 
-    final seenQualities = <String>{};
+    final qualityMap = <int, VideoQualityEntity>{};
 
-    for (var stream in info.streams) {
-      String label = "";
-      bool isMuxed = stream is MuxedStreamInfo;
+    void processStream(StreamInfo stream, {required bool isMuxed}) {
+      final qualityStr = stream.qualityLabel;
+      final match = RegExp(r'(\d+)').firstMatch(qualityStr);
+      if (match == null) return;
 
-      if (stream is VideoStreamInfo) {
-        label = stream.videoQuality.toString();
+      final resolution = int.tryParse(match.group(1) ?? '0') ?? 0;
+      if (resolution == 0) return;
+
+      // Prefer muxed streams if already exists, otherwise add if new
+      if (qualityMap.containsKey(resolution)) {
+        return;
       }
 
-      if (label.isEmpty) continue;
+      final size = stream.size;
+      final sizeStr = size.totalMegaBytes >= 1024
+          ? '${size.totalGigaBytes.toStringAsFixed(2)} GB'
+          : '${size.totalMegaBytes.toStringAsFixed(1)} MB';
 
-      if (!isMuxed) {
-        label += " (Video Only)";
-      }
-
-      final uniqueKey = "$label-${stream.container.name}";
-      if (seenQualities.contains(uniqueKey)) continue;
-      seenQualities.add(uniqueKey);
-
-      entities.add(
-        VideoQualityEntity(
-          label: label,
-          url: stream.url.toString(),
-          format: stream.container.name,
-          fileSize: stream.size.toString(),
-        ),
+      qualityMap[resolution] = VideoQualityEntity(
+        label: '${resolution}p',
+        url: stream.url.toString(),
+        format: stream.container.name,
+        fileSize: sizeStr,
+        source: VideoSource.youtube,
       );
     }
 
-    // Sort: Higher quality first (simplified sort)
+    // 1. Process Muxed (Standard Quality - Safe from 403)
+    for (var stream in info.streams.whereType<MuxedStreamInfo>()) {
+      processStream(stream, isMuxed: true);
+    }
+
+    // Note: Video-Only streams (High Quality) are enabled again
+    for (var stream in info.streams.whereType<VideoStreamInfo>()) {
+      processStream(stream, isMuxed: false);
+    }
+
+    entities.addAll(qualityMap.values);
+
+    // Sort: Audio first, then by resolution descending
     entities.sort((a, b) {
-      if (a.isAudio && !b.isAudio) return 1;
-      if (!a.isAudio && b.isAudio) return -1;
-      return b.label.compareTo(a.label);
+      if (a.isAudio && !b.isAudio) return -1;
+      if (!a.isAudio && b.isAudio) return 1;
+
+      final resA = int.tryParse(a.label.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      final resB = int.tryParse(b.label.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      return resB.compareTo(resA);
     });
 
     return entities;

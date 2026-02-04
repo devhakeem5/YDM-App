@@ -91,4 +91,11 @@ class AppStrings {
   static const String batteryOptimization = 'battery_optimization';
   static const String batteryDesc = 'battery_desc';
   static const String grant = 'grant';
+
+  // Quality Classifications
+  static const String qualityLow = 'quality_low';
+  static const String qualityGood = 'quality_good';
+  static const String qualityHigh = 'quality_high';
+  static const String qualityVeryHigh = 'quality_very_high';
+  static const String analyzing = 'analyzing';
 }

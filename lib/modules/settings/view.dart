@@ -12,7 +12,7 @@ class SettingsView extends GetView<SettingsController> {
   @override
   Widget build(BuildContext context) {
     final settingsService = Get.put(SettingsService());
-    final SettingsController s  = Get.put(SettingsController());
+    final SettingsController _s  = Get.put(SettingsController());
     final backupService = Get.put(
       BackupService(),
     ); // Lazy put usually, but here we invoke it. Use Get.find if put in binding.
